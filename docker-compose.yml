@@ -1,0 +1,81 @@
+services:
+  bookdb:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: bookdb
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    volumes:
+      - bookdb_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    
+  notifdb:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: notifdb
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    volumes:
+      - notifdb_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5433"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"   # pour la connexion des apps
+      - "15672:15672" # dashboard web
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: pass
+
+  bookservice:
+    build: ./drf-mini-test
+    command: sh -c "./wait_for_db.sh bookdb python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    
+    volumes:
+      - ./drf-mini-test:/app
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_DB: bookdb
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_HOST: bookdb
+      REDIS_URL: redis://redis:6379/
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: pass
+    depends_on:
+      - bookdb
+      - redis
+
+  notifservice:
+    build: ./drf-notif-test
+    command: sh -c "./wait_for_db.sh notifdb python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+
+    volumes:
+      - ./drf-notif-test:/app
+    ports:
+      - "8001:8000"
+    environment:
+      POSTGRES_DB: notifdb
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_HOST: notifdb
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: pass
+    depends_on:
+      - notifdb
+      - redis    
+
+volumes:
+  bookdb_data:
+  notifdb_data:
