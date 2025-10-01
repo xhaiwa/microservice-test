@@ -1,0 +1,6 @@
+[submodule "drf-mini-test"]
+	path = drf-mini-test
+	url = https://github.com/xhaiwa/drf-mini-test.git
+[submodule "drf-notif-test"]
+	path = drf-notif-test
+	url = https://github.com/xhaiwa/drf-notif-test.git
